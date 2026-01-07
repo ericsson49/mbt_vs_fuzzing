@@ -8,13 +8,13 @@ Known issues:
 - Various subtle bugs in instruction implementations
 """
 
-from typing import List, Optional
+from typing import List
 
 # Import constants from spec to ensure consistency
 from sloppy_vm_spec import UINT64_MAX, OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
 
 
-def execute(bytecode: bytes) -> Optional[List[int]]:
+def execute(bytecode: bytes) -> List[int]:
     """
     Execute bytecode and return the final stack state.
 
@@ -22,8 +22,14 @@ def execute(bytecode: bytes) -> Optional[List[int]]:
         bytecode: Bytecode buffer to execute
 
     Returns:
-        List of integers representing the stack, or None on fatal error
-        (Note: this version has minimal error checking)
+        List of integers representing the stack
+
+    Raises:
+        IndexError: On stack underflow (popping from empty stack)
+        RuntimeError: On unknown opcode
+
+    Note:
+        This version has minimal error checking and will crash on errors.
     """
     stack: List[int] = []
     offset = 0
