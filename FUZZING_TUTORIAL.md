@@ -1,0 +1,273 @@
+# Fuzzing Tutorial for SloppyVM
+
+This tutorial demonstrates using fuzzing to find bugs in the SloppyVM implementation, and explores the limitations of random fuzzing.
+
+---
+
+## Buggy implementation (v1)
+
+The file [sloppy_vm_impl_v1.py](sloppy_vm_impl_v1.py) contains a deliberately buggy implementation. Let's examine its known bugs:
+
+### Bugs
+#### Bug 1: Wrong Endianness for PUSH4
+
+**Location**: `sloppy_vm_impl_v1.py`:[43](sloppy_vm_impl_v1.py#L43)
+
+```python
+# BUG: Using little-endian instead of big-endian
+value = int.from_bytes(bytecode[offset + 1:offset + 5], 'little')
+```
+
+#### Bug 2: No Stack Underflow Checking
+
+**Location**: `sloppy_vm_impl_v1.py`: [49-50](sloppy_vm_impl_v1.py#L49), [57-58](sloppy_vm_impl_v1.py#L57), [66-67](sloppy_vm_impl_v1.py#L66)
+
+
+```python
+# BUG: No stack underflow checking
+a = stack.pop()  # Crashes if stack is empty!
+b = stack.pop()
+```
+
+The implementation will raise `IndexError`. An (implicit) requirement is that it only should raise `SloppyVMException`, any other is interpreted as a crash.
+
+#### Bug 3: Missing 64-bit Overflow Masking
+
+**Location**: `sloppy_vm_impl_v1.py`:[52](sloppy_vm_impl_v1.py#L52), [60](sloppy_vm_impl_v1.py#L60)
+
+```python
+# BUG: Missing modulo masking for overflow
+stack.append(a + b)  # Should be: (a + b) & UINT64_MAX
+stack.append(a * b)  # Should be: (a * b) & UINT64_MAX
+```
+
+#### Bug 4: Incorrect BYTE Instruction
+
+**Location**: `sloppy_vm_impl_v1.py`:[69](sloppy_vm_impl_v1.py#L69), [72](sloppy_vm_impl_v1.py#L72)
+
+```python
+# BUG: wrong bound check
+if i >= 7:  # Should be: i >= 8
+    stack.append(0)
+else:
+    shift = i * 8  # Should be: (7-i) * 8 for big-endian extraction
+    result = (x >> shift) & 0xFF
+```
+
+#### Bug 5: Crash on Unknown Opcodes
+
+**Location**: `sloppy_vm_impl_v1.py`:[79](sloppy_vm_impl_v1.py#L79)`
+
+```python
+else:
+    # BUG: Unknown opcodes will crash
+    raise RuntimeError(f"Unknown opcode: 0x{opcode:02X}")
+```
+
+The implementation raises `RuntimeError`. Again, it should only raise `SloppyVMException`.
+
+### Fuzzing with random byte sequences
+
+The simplest way to fuzz the Sloppy VM is to generate random byte sequences:
+
+```python
+def generate_random_bytes(max_length: int = 20) -> bytes:
+    length = random.randint(1, max_length)
+    return bytes(random.randint(0, 255) for _ in range(length))
+```
+
+This means most test cases are:
+- Invalid opcodes (bytes 0x00, 0x05-0xFF)
+- Truncated instructions (e.g., PUSH4 without 4 bytes of value)
+- Malformed bytecode
+
+We can run the fuzzer against v1 with 1000 random test cases:
+
+```bash
+uv run fuzzer.py -i v1 -n 1000 -g random
+```
+
+### Example Results
+
+```bash
+$ uv run fuzzer.py -i v1 -n 1000 -s 42
+SloppyVM Fuzzer - Running 1000 tests
+Testing: v1
+Generator: random bytes
+============================================================
+
+Test 1: Bug found
+  Bytecode: 0c8c7d72
+  Expected: ExceptionThrown(reason='invalid bytecode')
+  Actual:   Crash(reason="implementation raised exception: RuntimeError('Unknown opcode: 0x0C')")
+
+... (many more crash reports)
+
+============================================================
+Fuzzer Summary
+----------------------------------------
+Total tests run:           1000
+Invalid bytecodes:         1000
+Valid:                     0
+Bugs found:                1000
+Impl crashes:              1000
+Correct:                   0
+Bug detection rate:     100.0%
+```
+
+Random fuzzing excels at finding bugs like **Bug 5** (unknown opcode handling). Most random bytes are invalid opcodes, so this is discovered immediately:
+
+```
+Test 1: Bug found
+Test 1: Bug found
+  Bytecode: 0c8c7d72
+  Expected: ExceptionThrown(reason='invalid bytecode')
+  Actual:   Crash(reason="implementation raised exception: RuntimeError('Unknown opcode: 0x0C')")
+```
+
+Or finding **Bug 2** (stack underflow): many ADD/MUL/BYTE instructions are executed before any value has been pushed.
+
+```
+Test 148: Bug found
+  Bytecode: 0437dc4487bbcebb17cd1a63b99325c5e68f
+  Expected: ExceptionThrown(reason='invalid bytecode')
+  Actual:   Crash(reason="implementation raised exception: IndexError('pop from empty list')")
+```
+
+---
+
+## Still buggy implementation (v2)
+
+### Fixing bugs
+
+The bugs are easy to fix: just raise `InvalidInstruction` or `StackUnderflow`, which are a sub-classes of `SloppyVMException`. After implementing the fixes, we have [sloppy_vm_impl_v2.py](sloppy_vm_impl_v2.py).
+
+### Fuzzing again
+
+Let's fuzz the v2 version:
+
+```bash
+$ uv run fuzzer.py -i v2 -n 100000 -s 42
+SloppyVM Fuzzer - Running 100000 tests
+Testing: v2
+Generator: random bytes
+============================================================
+
+============================================================
+Fuzzer Summary
+----------------------------------------
+Total tests run:           100000
+Invalid bytecodes:         99922
+Valid:                     78
+Bugs found:                0
+Impl crashes:              0
+Correct:                   100000
+
+No bugs detected in valid test cases!
+```
+
+Now, that simple fuzzing strategy is not able to reveal bugs, even with 100,000 tests.
+
+### Fuzzing with structured inputs
+
+Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes produce invalid bytecode, so we rarely exercise the actual logic of the VM.
+
+**Structure-aware fuzzing** aims at generating random sequences of valid instructions.
+
+```python
+def generate_structured_bytecode(max_instructions: int = 10) -> bytes:
+    instructions = []
+    num_instructions = random.randint(1, max_instructions)
+
+    for _ in range(num_instructions):
+        opcode = random.choice([0x01, 0x02, 0x03, 0x04])  # PUSH4, ADD, MUL, BYTE
+
+        if opcode == 0x01:  # PUSH4
+            value = random.randint(0, 0xFFFFFFFF)
+            instructions.append(bytes([opcode]) + value.to_bytes(4, 'big'))
+        else:  # ADD, MUL, BYTE (no operands)
+            instructions.append(bytes([opcode]))
+
+    return b''.join(instructions)
+```
+
+In practice, we may still generate invalid sequences with low probability, which is exactly the [strategy](fuzzer.py#L30) activated, when `-g structured` is passed to the fuzzer.
+
+### Example Results
+
+```bash
+$ uv run fuzzer.py -i v2 -n 1000 -g structured -s 42 
+SloppyVM Fuzzer - Running 1000 tests
+Testing: v2
+Generator: structure-aware
+============================================================
+
+Test 26: Bug found
+  Bytecode: 01983268560185d5169501b758588d014ccc9bc20301ff002d4d0143e42caf040401286218b8
+    [PUSH4(value=2553440342), PUSH4(value=2245334677), PUSH4(value=3076020365), PUSH4(value=1288477634), MUL(), PUSH4(value=4278201677), PUSH4(value=1139027119), BYTE(), BYTE(), PUSH4(value=677517496)]
+  Expected: Success(stack=[2553440342, 2245334677, 55, 677517496])
+  Actual:   Success(stack=[2553440342, 2245334677, 0, 677517496])
+
+============================================================
+Fuzzer Summary
+----------------------------------------
+Total tests run:           1000
+Invalid bytecodes:         237
+Valid:                     763
+Bugs found:                8
+Impl crashes:              0
+Correct:                   992
+Bug detection rate:     0.8%
+```
+
+This time about 75% of bytecodes are valid, which helps to reveal **Bug 3** (64-bit overflow masking), **Bug 1** and **Bug 4** (little-endian instead of big-endian).
+
+---
+
+## Implementation with a more subtle bug (v3)
+
+### Fixing bugs
+
+After fixing the bugs, we've got [sloppy_vm_impl_v3.py](sloppy_vm_impl_v3.py). In the process, one more bug revealed and fixed:
+**Location**: `sloppy_vm_impl_v2.py`:[72](sloppy_vm_impl_v2.py#L72)
+```python
+# BUG: wrong stack pop order, should be swapped
+x = stack.pop()
+i = stack.pop()
+```
+
+### Fuzzing with structured inputs
+
+```bash
+$ uv run fuzzer.py -i v3 -n 1000000 -g structured -s 42
+SloppyVM Fuzzer - Running 1000000 tests
+Testing: v3
+Generator: structure-aware
+============================================================
+
+============================================================
+Fuzzer Summary
+----------------------------------------
+Total tests run:           1000000
+Invalid bytecodes:         248087
+Valid:                     751913
+Bugs found:                0
+Impl crashes:              0
+Correct:                   1000000
+
+No bugs detected in valid test cases!
+```
+
+Running 1 million tests revealed no bugs. However, there is still a bug present:
+```python
+# BUG: wrong bound check
+if i >= 7: # should be i >= 8
+    stack.append(0)
+else:
+    # FIXED: Use (7-i) for big-endian indexing (0=MSB, 7=LSB)
+    shift = (7 - i) * 8
+    result = (x >> shift) & 0xFF
+    stack.append(result)
+```
+
+However, it looks like it's extremely unlikely to generate an input revealing the bug, even with structured inputs. We'll handle the problem with Model-based testing in the next tutorial.

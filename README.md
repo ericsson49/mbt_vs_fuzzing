@@ -4,6 +4,11 @@
 
 SloppyVM is intentionally simple: featuring just four instructions (PUSH4, ADD, MUL, BYTE), operating on 64-bit values. The project includes both a reference (correct) implementation and a deliberately buggy implementations to compare how effectively MBT and fuzzing can discover defects.
 
+## Tutorials
+
+- [fuzzing tutorial](FUZZING_TUTORIAL.md)
+- model-based testing (todo)
+
 ## Installation
 
 This project uses `uv` for Python package management.
