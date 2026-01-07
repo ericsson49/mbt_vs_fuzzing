@@ -47,8 +47,8 @@ def execute(bytecode: bytes) -> List[int]:
         elif opcode == OP_ADD:
             if len(stack) < 2:
                 raise StackUnderflow("ADD requires 2 stack elements")
-            b = stack.pop()
             a = stack.pop()
+            b = stack.pop()
             # FIXED: Added modulo masking for overflow
             stack.append((a + b) & UINT64_MAX)
             offset += 1
@@ -56,8 +56,8 @@ def execute(bytecode: bytes) -> List[int]:
         elif opcode == OP_MUL:
             if len(stack) < 2:
                 raise StackUnderflow("MUL requires 2 stack elements")
-            b = stack.pop()
             a = stack.pop()
+            b = stack.pop()
             # FIXED: Added modulo masking for overflow
             stack.append((a * b) & UINT64_MAX)
             offset += 1
