@@ -168,7 +168,7 @@ No bugs detected in valid test cases!
 
 Now, that simple fuzzing strategy is not able to reveal bugs, even with 100,000 tests.
 
-### Fuzzing with structured inputs
+### Structure-aware fuzzing
 
 Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes correspond to invalid opcodes, so we rarely exercise the actual logic of the VM.
 
@@ -259,7 +259,7 @@ Correct:                   1000000
 No bugs detected in valid test cases!
 ```
 
-Running 1 million tests revealed no bugs. However, there is still a bug present (the [first](sloppy_vm_impl_v1.py#L69) part of the **Bug 4**):
+Running 1 million tests revealed no bugs. However, there is still a bug present (the [first](sloppy_vm_impl_v3.py#L72) part of the **Bug 4**):
 ```python
 # BUG: wrong bound check
 if i >= 7: # should be i >= 8
