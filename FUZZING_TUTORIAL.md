@@ -56,7 +56,7 @@ else:
 
 #### Bug 5: Crash on Unknown Opcodes
 
-**Location**: `sloppy_vm_impl_v1.py`:[79](sloppy_vm_impl_v1.py#L79)`
+**Location**: `sloppy_vm_impl_v1.py`:[79](sloppy_vm_impl_v1.py#L79)
 
 ```python
 else:
@@ -90,7 +90,7 @@ uv run fuzzer.py -i v1 -n 1000 -g random
 ### Example Results
 
 ```bash
-$ uv run fuzzer.py -i v1 -n 1000 -s 42
+$ uv run fuzzer.py -i v1 -n 1000 -g random -s 42
 SloppyVM Fuzzer - Running 1000 tests
 Testing: v1
 Generator: random bytes
@@ -125,7 +125,7 @@ Test 1: Bug found
   Actual:   Crash(reason="implementation raised exception: RuntimeError('Unknown opcode: 0x0C')")
 ```
 
-Or finding **Bug 2** (stack underflow): many ADD/MUL/BYTE instructions are executed before any value has been pushed.
+Or like **Bug 2** (stack underflow): many ADD/MUL/BYTE instructions are executed before any value has been pushed.
 
 ```
 Test 148: Bug found
@@ -147,7 +147,7 @@ The bugs are easy to fix: just raise `InvalidInstruction` or `StackUnderflow`, w
 Let's fuzz the v2 version:
 
 ```bash
-$ uv run fuzzer.py -i v2 -n 100000 -s 42
+$ uv run fuzzer.py -i v2 -n 100000 -g random -s 42
 SloppyVM Fuzzer - Running 100000 tests
 Testing: v2
 Generator: random bytes
@@ -170,7 +170,7 @@ Now, that simple fuzzing strategy is not able to reveal bugs, even with 100,000 
 
 ### Fuzzing with structured inputs
 
-Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes produce invalid bytecode, so we rarely exercise the actual logic of the VM.
+Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes correspond to invalid opcodes, so we rarely exercise the actual logic of the VM.
 
 **Structure-aware fuzzing** aims at generating random sequences of valid instructions.
 
@@ -221,6 +221,7 @@ Bug detection rate:     0.8%
 ```
 
 This time about 75% of bytecodes are valid, which helps to reveal **Bug 3** (64-bit overflow masking), **Bug 1** and **Bug 4** (little-endian instead of big-endian).
+**NB** The **Bug 4** actually consisits of two problems, only one is revealed (`i * 8` instead of `(7 - i) * 8`).
 
 ---
 
@@ -236,7 +237,7 @@ x = stack.pop()
 i = stack.pop()
 ```
 
-### Fuzzing with structured inputs
+### Structure-aware fuzzing again
 
 ```bash
 $ uv run fuzzer.py -i v3 -n 1000000 -g structured -s 42
@@ -258,7 +259,7 @@ Correct:                   1000000
 No bugs detected in valid test cases!
 ```
 
-Running 1 million tests revealed no bugs. However, there is still a bug present:
+Running 1 million tests revealed no bugs. However, there is still a bug present (the [first](sloppy_vm_impl_v1.py#L69) part of the **Bug 4**):
 ```python
 # BUG: wrong bound check
 if i >= 7: # should be i >= 8
@@ -270,4 +271,4 @@ else:
     stack.append(result)
 ```
 
-However, it looks like it's extremely unlikely to generate an input revealing the bug, even with structured inputs. We'll handle the problem with Model-based testing in the next tutorial.
+However, it looks like it's extremely unlikely to generate a bytecode revealing the bug, even with structure-aware fuzzing. We'll address the problem with Model-based testing in the next tutorial.
