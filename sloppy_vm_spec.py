@@ -192,24 +192,24 @@ def execute(state: VMState, instruction: Instruction) -> VMState:
         case ADD():
             if len(stack) < 2:
                 raise StackUnderflow("ADD requires 2 stack elements")
-            b = stack.pop()
             a = stack.pop()
+            b = stack.pop()
             stack.append((a + b) & UINT64_MAX)
             return new_state
 
         case MUL():
             if len(stack) < 2:
                 raise StackUnderflow("MUL requires 2 stack elements")
-            b = stack.pop()
             a = stack.pop()
+            b = stack.pop()
             stack.append((a * b) & UINT64_MAX)
             return new_state
 
         case BYTE():
             if len(stack) < 2:
                 raise StackUnderflow("BYTE requires 2 stack elements")
-            x = stack.pop()
             i = stack.pop()
+            x = stack.pop()
             if i >= 8:
                 stack.append(0)
             else:

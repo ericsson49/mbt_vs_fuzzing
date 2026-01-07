@@ -122,23 +122,23 @@ def test_sloppy_vm():
 
     # BYTE - byte 0 (MSB of 64-bit value)
     value = 0xFF << (7 * 8)  # 0xFF00000000000000
-    result = execute(VMState(stack=[0, value]), BYTE())
+    result = execute(VMState(stack=[value, 0]), BYTE())
     assert result.stack == [0xFF]
     print("✓ BYTE (MSB, index=0)")
 
     # BYTE - byte 7 (LSB of 64-bit value)
-    result = execute(VMState(stack=[7, 0xAB]), BYTE())
+    result = execute(VMState(stack=[0xAB, 7]), BYTE())
     assert result.stack == [0xAB]
     print("✓ BYTE (LSB, index=7)")
 
     # BYTE - middle byte
     value = 0x00FF000000000000  # FF at byte index 1
-    result = execute(VMState(stack=[1, value]), BYTE())
+    result = execute(VMState(stack=[value, 1]), BYTE())
     assert result.stack == [0xFF]
     print("✓ BYTE (middle, index=1)")
 
     # BYTE - out of range (index >= 8)
-    result = execute(VMState(stack=[8, 0xFFFFFFFFFFFFFFFF]), BYTE())
+    result = execute(VMState(stack=[0xFFFFFFFFFFFFFFFF, 8]), BYTE())
     assert result.stack == [0]
     print("✓ BYTE (index >= 8 returns 0)")
 
@@ -170,12 +170,12 @@ def test_sloppy_vm():
 
     # Extract byte from computed value
     # 0x12345678 -> byte 4 = 0x12, byte 5 = 0x34, byte 6 = 0x56, byte 7 = 0x78
-    program = [PUSH4(7), PUSH4(0x12345678), BYTE()]
+    program = [PUSH4(0x12345678), PUSH4(7), BYTE()]
     result = execute_program(program)
     assert result.stack == [0x78]
     print("✓ BYTE extraction: byte 7 of 0x12345678 = 0x78")
 
-    program = [PUSH4(4), PUSH4(0x12345678), BYTE()]
+    program = [PUSH4(0x12345678), PUSH4(4), BYTE()]
     result = execute_program(program)
     assert result.stack == [0x12]
     print("✓ BYTE extraction: byte 4 of 0x12345678 = 0x12")
