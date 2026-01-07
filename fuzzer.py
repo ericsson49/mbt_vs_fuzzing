@@ -19,6 +19,8 @@ from sloppy_vm_spec import (
 import sloppy_vm_impl_v1
 import sloppy_vm_impl_v2
 import sloppy_vm_impl_v3
+import sloppy_vm_impl_v4
+from expression import random_expr, compile_expr, UINT32_MAX
 
 
 def generate_random_bytes(max_length: int = 20) -> bytes:
@@ -78,6 +80,69 @@ def generate_structure_aware_bytecode(max_instructions: int = 10) -> bytes:
     return b''.join(instructions)
 
 
+def generate_expression_bytecode(
+    max_depth: int = 3,
+    max_value: int | None = None
+) -> bytes:
+    """
+    Generate bytecode using expression trees.
+
+    Creates random expression trees (Const, Add, Mul) and compiles them to
+    valid SloppyVM bytecode. This guarantees syntactically valid bytecode
+    that will execute successfully (no stack underflow or invalid opcodes).
+
+    Args:
+        max_depth: Maximum depth of the expression tree
+        max_value: Maximum value for random constants. If None, uses default list
+                   [0-9, UINT32_MAX]. Otherwise, uses rng.randint(0, max_value).
+
+    Returns:
+        Valid bytecode for a SloppyVM program
+    """
+    if max_value is None:
+        # Default behavior: sample from specific values including edge cases
+        const_values = [*range(0, 10), UINT32_MAX]
+        def const_generator(rng: random.Random) -> int:
+            return rng.choice(const_values)
+    else:
+        # Generate random values in range [0, max_value]
+        def const_generator(rng: random.Random) -> int:
+            return rng.randint(0, max_value)
+
+    rng = random.Random()
+    expr = random_expr(rng, max_depth=max_depth, const_generator=const_generator)
+    return compile_expr(expr)
+
+
+def generate_mixed_strategy_bytecode(max_instructions: int = 10) -> bytes:
+    """
+    Generate bytecode using a mixed strategy, randomly selecting between:
+    1. Completely random bytes
+    2. Structure-aware bytecode (with potential invalid bytecode)
+    3. Expression bytecode with default values
+    4. Expression bytecode with full uint32 range
+
+    This combines the strengths of different generation approaches to maximize
+    bug detection coverage.
+
+    Args:
+        max_instructions: Maximum number of instructions for structured/expression generators
+
+    Returns:
+        Bytecode generated using one of the four strategies
+    """
+    strategy_roll = random.random()
+
+    if strategy_roll < 0.25:  # 25% chance - completely random
+        return generate_random_bytes()
+    elif strategy_roll < 0.50:  # 25% chance - structured
+        return generate_structure_aware_bytecode(max_instructions=max_instructions)
+    elif strategy_roll < 0.75:  # 25% chance - expression with default values
+        return generate_expression_bytecode(max_depth=3, max_value=None)
+    else:  # 25% chance - expression with full uint32 range
+        return generate_expression_bytecode(max_depth=3, max_value=UINT32_MAX)
+
+
 @dataclass(frozen=True)
 class ExecutionResult:
     """Base class for execution results - used as a union type."""
@@ -135,7 +200,7 @@ def run_fuzzer(
     num_tests: int = 1000,
     seed: Optional[int] = None,
     impl: str = "v1",
-    structure_aware: bool = False
+    generator: str = "random"
 ) -> None:
     """
     Run the fuzzer for a specified number of tests.
@@ -143,8 +208,8 @@ def run_fuzzer(
     Args:
         num_tests: Number of random test cases to generate
         seed: Random seed for reproducibility
-        impl: Which implementation to test: "v1", "v2" or "v3"
-        structure_aware: Use structure-aware bytecode generator instead of random bytes
+        impl: Which implementation to test: "v1", "v2", "v3", or "v4"
+        generator: Generator type: "random", "structured", "expression", or "mixed"
     """
     if seed is not None:
         random.seed(seed)
@@ -159,12 +224,15 @@ def run_fuzzer(
     elif impl == "v3":
         impl_func = sloppy_vm_impl_v3.execute
         impl_name = "v3"
+    elif impl == "v4":
+        impl_func = sloppy_vm_impl_v4.execute
+        impl_name = "v4"
     else:
-        raise ValueError(f"Unknown implementation: {impl}. Use 'v1', 'v2', or 'v3'")
-    
+        raise ValueError(f"Unknown implementation: {impl}. Use 'v1', 'v2', 'v3', or 'v4'")
+
     print(f"SloppyVM Fuzzer - Running {num_tests} tests")
     print(f"Testing: {impl_name}")
-    print(f"Generator: {'structure-aware' if structure_aware else 'random bytes'}")
+    print(f"Generator: {generator}")
     print("=" * 60)
 
     bugs_found = 0
@@ -173,9 +241,13 @@ def run_fuzzer(
 
     for i in range(num_tests):
         # Generate test input using selected generator
-        if structure_aware:
+        if generator == "expression":
+            bytecode = generate_expression_bytecode()
+        elif generator == "structured":
             bytecode = generate_structure_aware_bytecode()
-        else:
+        elif generator == "mixed":
+            bytecode = generate_mixed_strategy_bytecode()
+        else:  # random
             bytecode = generate_random_bytes()
 
         # Run spec implementation - returns None for invalid bytecode (never raises)
@@ -241,15 +313,15 @@ if __name__ == "__main__":
         "-i", "--impl",
         type=str,
         default="v1",
-        choices=["v1", "v2", "v3"],
-        help="Implementation to test: v1, v2, or v3 (default: v1)"
+        choices=["v1", "v2", "v3", "v4"],
+        help="Implementation to test: v1, v2, v3, or v4 (default: v1)"
     )
     parser.add_argument(
         "-g", "--generator",
         type=str,
         default="random",
-        choices=["random", "structured"],
-        help="Generator type: 'random' or 'structured' (default: random)"
+        choices=["random", "structured", "expression", "mixed"],
+        help="Generator type: 'random', 'structured', 'expression', or 'mixed' (default: random)"
     )
 
     args = parser.parse_args()
@@ -258,5 +330,5 @@ if __name__ == "__main__":
         num_tests=args.num_tests,
         seed=args.seed,
         impl=args.impl,
-        structure_aware=(args.generator == "structured")
+        generator=args.generator
     )
