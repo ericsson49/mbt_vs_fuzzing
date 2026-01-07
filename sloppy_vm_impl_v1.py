@@ -65,7 +65,8 @@ def execute(bytecode: bytes) -> List[int]:
             # BUG: wrong stack pop order
             x = stack.pop()
             i = stack.pop()
-            if i >= 8:
+            # BUG: wrong bound check
+            if i >= 7:
                 stack.append(0)
             else:
                 shift = i * 8  # BUG: should be (7-i) * 8
