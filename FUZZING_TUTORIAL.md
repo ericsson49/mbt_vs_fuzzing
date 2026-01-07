@@ -43,13 +43,9 @@ stack.append(a * b)  # Should be: (a * b) & UINT64_MAX
 
 #### Bug 4: Incorrect BYTE Instruction
 
-**Location**: `sloppy_vm_impl_v1.py`:[69](sloppy_vm_impl_v1.py#L69), [72](sloppy_vm_impl_v1.py#L72)
+**Location**: `sloppy_vm_impl_v1.py`:[72](sloppy_vm_impl_v1.py#L72)
 
 ```python
-# BUG: wrong bound check
-if i >= 7:  # Should be: i >= 8
-    stack.append(0)
-else:
     shift = i * 8  # Should be: (7-i) * 8 for big-endian extraction
     result = (x >> shift) & 0xFF
 ```
@@ -166,7 +162,7 @@ Correct:                   100000
 No bugs detected in valid test cases!
 ```
 
-Now, that simple fuzzing strategy is not able to reveal bugs, even with 100,000 tests.
+Now, such simple fuzzing strategy is not able to reveal more bugs, even with 100,000 tests.
 
 ### Structure-aware fuzzing
 
@@ -221,7 +217,6 @@ Bug detection rate:     0.8%
 ```
 
 This time about 75% of bytecodes are valid, which helps to reveal **Bug 3** (64-bit overflow masking), **Bug 1** and **Bug 4** (little-endian instead of big-endian).
-**NB** The **Bug 4** actually consisits of two problems, only one is revealed (`i * 8` instead of `(7 - i) * 8`).
 
 ---
 
@@ -259,7 +254,7 @@ Correct:                   1000000
 No bugs detected in valid test cases!
 ```
 
-Running 1 million tests revealed no bugs. However, there is still a bug present (the [first](sloppy_vm_impl_v3.py#L72) part of the **Bug 4**):
+Running 1 million tests revealed no bugs. However, there is still a [bug](sloppy_vm_impl_v3.py#L72) present:
 ```python
 # BUG: wrong bound check
 if i >= 7: # should be i >= 8
