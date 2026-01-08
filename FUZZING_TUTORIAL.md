@@ -160,7 +160,7 @@ Bugs found:                0
 Impl crashes:              0
 Correct:                   100000
 
-No bugs detected in valid test cases!
+No bugs detected!
 ```
 
 Now, such simple fuzzing strategy is not able to reveal more bugs, even with 100,000 tests.
@@ -252,7 +252,7 @@ Bugs found:                0
 Impl crashes:              0
 Correct:                   1000000
 
-No bugs detected in valid test cases!
+No bugs detected!
 ```
 
 Running 1 million tests revealed no bugs. However, there is still a [bug](sloppy_vm_impl_v3.py#L72) present:
