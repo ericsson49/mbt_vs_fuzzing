@@ -38,6 +38,7 @@ The implementation will raise `IndexError`. An (implicit) requirement is that it
 ```python
 # BUG: Missing modulo masking for overflow
 stack.append(a + b)  # Should be: (a + b) & UINT64_MAX
+...
 stack.append(a * b)  # Should be: (a * b) & UINT64_MAX
 ```
 
@@ -168,7 +169,7 @@ Now, such simple fuzzing strategy is not able to reveal more bugs, even with 100
 
 Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes correspond to invalid opcodes, so we rarely exercise the actual logic of the VM.
 
-**Structure-aware fuzzing** aims at generating random sequences of valid instructions.
+**Structure-aware fuzzing** aims at generating random sequences of valid instructions. In our case, it can look like:
 
 ```python
 def generate_structured_bytecode(max_instructions: int = 10) -> bytes:
@@ -187,7 +188,7 @@ def generate_structured_bytecode(max_instructions: int = 10) -> bytes:
     return b''.join(instructions)
 ```
 
-In practice, we may still generate invalid sequences with low probability, which is exactly the [strategy](fuzzer.py#L30) activated, when `-g structured` is passed to the fuzzer.
+In practice, we may still generate invalid sequences with low probability, which is exactly the [approach](fuzzer.py#L30) used, when `-g structured` is passed to the fuzzer.
 
 ### Example Results
 
