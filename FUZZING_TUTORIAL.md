@@ -167,7 +167,7 @@ Now, such simple fuzzing strategy is not able to reveal more bugs, even with 100
 
 ### Structure-aware fuzzing
 
-Random byte sequences are good at finding gross violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes correspond to invalid opcodes, so we rarely exercise the actual logic of the VM.
+Random byte sequences are good at finding shallow violations (unknown opcodes, stack underflow), but they struggle to find deeper semantic bugs. The problem is that most random bytes correspond to invalid opcodes, so we rarely exercise the actual logic of the VM.
 
 **Structure-aware fuzzing** aims at generating random sequences of valid instructions. In our case, it can look like:
 
