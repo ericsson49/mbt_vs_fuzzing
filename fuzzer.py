@@ -290,7 +290,7 @@ def run_fuzzer(
         bug_rate = (bugs_found / num_tests) * 100
         print(f"Bug detection rate:     {bug_rate:.1f}%")
     else:
-        print("\nNo bugs detected in valid test cases!")
+        print("\nNo bugs detected!")
 
 
 if __name__ == "__main__":
