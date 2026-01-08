@@ -1,6 +1,6 @@
 # Model-Based Fuzzing Tutorial for SloppyVM
 
-This tutorial explores model-based testing (MBT) techniques for the SloppyVM virtual machine, comparing different test generation strategies and their effectiveness in discovering bugs across multiple implementation versions.
+This tutorial explores model-based fuzzing (MBF) techniques for the SloppyVM virtual machine.
 
 ---
 
@@ -19,18 +19,18 @@ We clearly see that random bytes rarely form valid instruction sequences. The VM
 
 ### Structure-Aware Fuzzing
 
-**Structure-aware fuzzing** addresses this by exploiting the **structure** of the system under test to generate syntactically valid inputs. Invalid instructions may also be generated. What's important is that we shape the probability distribution so that interesting cases appear more often.
+[Structure-aware fuzzing](https://en.wikipedia.org/wiki/Fuzzing#Aware_of_input_structure) addresses this by exploiting the **structure** of the system under test to generate syntactically valid inputs. Invalid instructions may also be generated. What's important is that we shape the probability distribution so that interesting cases appear more often.
 
 ### Model-based generation
 
-Structure-aware test generation already resembles model-based testing. We generate tests using a simple model:
+Structure-aware test generation already resembles [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing). We generate tests using a simple model:
 
 ```
 Instruction = ADD() | MUL() | BYTE() | PUSH4(UInt32)
 Program = Instruction+
 ```
 
-Here's the structure-aware generator from `fuzzer.py:32-80`, which can also produce invalid opcodes and truncated PUSH4 ops:
+Here's the [structure-aware](fuzzer.py#L32) generator, which can also produce invalid opcodes and truncated PUSH4 ops:
 
 ```python
 def generate_structure_aware_bytecode(max_instructions: int = 10) -> bytes:
@@ -59,7 +59,7 @@ This ensures coverage of both valid execution paths and error conditions.
 
 ### Results: Structure-Aware vs Random fuzzing
 
-Comparing structure-aware fuzzing against v2 with 100,000 tests:
+Comparing structure-aware and random fuzzing using [v2 implementation](sloppy_vm_impl_v2.py) with 100,000 tests:
 
 | Generator | Valid Bytecodes | Invalid Bytecodes | Bugs Found |
 |-----------|----------------|-------------------|------------|
