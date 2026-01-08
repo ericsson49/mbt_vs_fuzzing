@@ -188,7 +188,7 @@ def generate_structured_bytecode(max_instructions: int = 10) -> bytes:
     return b''.join(instructions)
 ```
 
-In practice, we may still generate invalid sequences with low probability, which is exactly the [approach](fuzzer.py#L30) used, when `-g structured` is passed to the fuzzer.
+In practice, we may still generate invalid sequences with low probability, which is exactly the [approach](fuzzer.py#L32) used, when `-g structured` is passed to the fuzzer.
 
 ### Example Results
 

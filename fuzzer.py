@@ -2,10 +2,13 @@
 Simple fuzzer for SloppyVM - compares buggy implementations against spec.
 
 Generates completely random byte sequences and compares results from:
-- sloppy_vm_impl_v1.py (buggy implementation - crashes on unknown opcodes)
-- sloppy_vm_impl_v2.py (buggy implementation - InvalidInstruction exception)
-- sloppy_vm_impl_v3.py (bugs fixed)
+- Dynamically discovered sloppy_vm_impl_v*.py implementations
 - sloppy_vm_spec.py (reference implementation)
+
+Implementations are auto-discovered at runtime by searching for files
+matching the pattern 'sloppy_vm_impl_v*.py' in the same directory as
+this script. Each implementation must provide a callable execute(bytecode)
+function that returns List[int].
 """
 
 from dataclasses import dataclass
@@ -16,11 +19,8 @@ from sloppy_vm_spec import (
     deserialize_program, execute_program, SloppyVMException, InvalidInstruction,
     OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
 )
-import sloppy_vm_impl_v1
-import sloppy_vm_impl_v2
-import sloppy_vm_impl_v3
-import sloppy_vm_impl_v4
 from expression import random_expr, compile_expr, UINT32_MAX
+from impl_registry import get_available_versions, get_implementation
 
 
 def generate_random_bytes(max_length: int = 20) -> bytes:
@@ -102,15 +102,14 @@ def generate_expression_bytecode(
     if max_value is None:
         # Default behavior: sample from specific values including edge cases
         const_values = [*range(0, 10), UINT32_MAX]
-        def const_generator(rng: random.Random) -> int:
-            return rng.choice(const_values)
+        def const_generator() -> int:
+            return random.choice(const_values)
     else:
         # Generate random values in range [0, max_value]
-        def const_generator(rng: random.Random) -> int:
-            return rng.randint(0, max_value)
+        def const_generator() -> int:
+            return random.randint(0, max_value)
 
-    rng = random.Random()
-    expr = random_expr(rng, max_depth=max_depth, const_generator=const_generator)
+    expr = random_expr(max_depth=max_depth, const_generator=const_generator)
     return compile_expr(expr)
 
 
@@ -208,30 +207,17 @@ def run_fuzzer(
     Args:
         num_tests: Number of random test cases to generate
         seed: Random seed for reproducibility
-        impl: Which implementation to test: "v1", "v2", "v3", or "v4"
+        impl: Which implementation to test (auto-discovered from sloppy_vm_impl_v*.py)
         generator: Generator type: "random", "structured", "expression", or "mixed"
     """
     if seed is not None:
         random.seed(seed)
 
     # Select implementation
-    if impl == "v1":
-        impl_func = sloppy_vm_impl_v1.execute
-        impl_name = "v1"
-    elif impl == "v2":
-        impl_func = sloppy_vm_impl_v2.execute
-        impl_name = "v2"
-    elif impl == "v3":
-        impl_func = sloppy_vm_impl_v3.execute
-        impl_name = "v3"
-    elif impl == "v4":
-        impl_func = sloppy_vm_impl_v4.execute
-        impl_name = "v4"
-    else:
-        raise ValueError(f"Unknown implementation: {impl}. Use 'v1', 'v2', 'v3', or 'v4'")
+    impl_func = get_implementation(impl).execute
 
     print(f"SloppyVM Fuzzer - Running {num_tests} tests")
-    print(f"Testing: {impl_name}")
+    print(f"Testing: {impl}")
     print(f"Generator: {generator}")
     print("=" * 60)
 
@@ -312,9 +298,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i", "--impl",
         type=str,
-        default="v1",
-        choices=["v1", "v2", "v3", "v4"],
-        help="Implementation to test: v1, v2, v3, or v4 (default: v1)"
+        default=get_available_versions()[0],
+        choices=get_available_versions(),
+        help=f"Implementation to test. Available: {', '.join(get_available_versions())} (default: %(default)s)"
     )
     parser.add_argument(
         "-g", "--generator",

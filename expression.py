@@ -1,7 +1,7 @@
 """Expression tree ADT: constants, sums, and products."""
 from __future__ import annotations
 from dataclasses import dataclass
-from random import Random
+import random
 from sloppy_vm_spec import serialize_program, Instruction
 from typing import Union, List, Callable
 
@@ -9,9 +9,9 @@ from typing import Union, List, Callable
 UINT32_MAX = 0xFFFFFFFF
 
 
-def _default_const_generator(rng: Random) -> int:
+def _default_const_generator() -> int:
     """Default constant generator: random 32-bit unsigned integer."""
-    return rng.randint(0, UINT32_MAX)
+    return random.randint(0, UINT32_MAX)
 
 
 @dataclass(frozen=True)
@@ -93,7 +93,7 @@ def compile_expr(expr: Expr) -> bytes:
 # =============================================================================
 
 
-def random_expr(rng: Random, max_depth: int = 3, const_generator: Callable[[Random], int] = _default_const_generator) -> Expr:
+def random_expr(max_depth: int = 3, const_generator: Callable[[], int] = _default_const_generator) -> Expr:
     """
     Generate a random expression tree.
 
@@ -115,28 +115,28 @@ def random_expr(rng: Random, max_depth: int = 3, const_generator: Callable[[Rand
         A randomly generated expression
     """
     if max_depth <= 0:
-        return Const(const_generator(rng))
+        return Const(const_generator())
 
-    choice = rng.random()
+    choice = random.random()
 
     if choice < 0.4:
         # Generate a constant
-        return Const(const_generator(rng))
+        return Const(const_generator())
     elif choice < 0.65:
         # Generate addition
         return Add(
-            random_expr(rng, max_depth - 1, const_generator),
-            random_expr(rng, max_depth - 1, const_generator)
+            random_expr(max_depth - 1, const_generator),
+            random_expr(max_depth - 1, const_generator)
         )
     elif choice < 0.9:
         # Generate multiplication
         return Mul(
-            random_expr(rng, max_depth - 1, const_generator),
-            random_expr(rng, max_depth - 1, const_generator)
+            random_expr(max_depth - 1, const_generator),
+            random_expr(max_depth - 1, const_generator)
         )
     else:
         # Generate byte extraction
         return Byte(
-            random_expr(rng, max_depth - 1, const_generator),
-            random_expr(rng, max_depth - 1, const_generator)
+            random_expr(max_depth - 1, const_generator),
+            random_expr(max_depth - 1, const_generator)
         )
