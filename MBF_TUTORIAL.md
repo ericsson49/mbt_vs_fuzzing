@@ -211,7 +211,7 @@ No bugs detected!
 
 ## Conclusion
 
-Model-based fuzzing is often straightforward to set up when the system under test is relatively simple. Real-world software, however, can be complicated and thus sampling interesting scenarios can become challenging. The model-based approach remains valuable even in these cases: we can model an approximation of the SUT, or focus on critical aspects.
+Model-based fuzzing is often straightforward to set up when the system under test is relatively simple. Real-world software, however, can be complicated and thus sampling interesting scenarios can become challenging. The model-based fuzzing remains valuable even in these cases: we can model an approximation of the SUT, or focus on critical aspects.
 
 An alternative approach is to use finite models and enumerate all possible inputs. This gives us predictable, deterministic test generation with guaranteed coverage of the modeled functionality. We'll explore this enumeration-based approach in the next tutorial.
 
