@@ -266,4 +266,4 @@ else:
     stack.append(result)
 ```
 
-However, it looks like it's extremely unlikely to generate a bytecode revealing the bug, even with structure-aware fuzzing. We'll address the problem with Model-based testing in the next tutorial.
+It looks like it's extremely unlikely to generate a bytecode revealing the bug, even with structure-aware fuzzing. We'll address the problem with Model-based testing in the next tutorial.
