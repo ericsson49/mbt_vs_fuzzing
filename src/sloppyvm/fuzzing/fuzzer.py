@@ -13,6 +13,7 @@ function that returns List[int].
 
 from dataclasses import dataclass
 from enum import Enum
+import itertools
 import random
 from typing import List, Optional, Callable
 
@@ -21,6 +22,7 @@ from sloppyvm.spec import (
     OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
 )
 from .expression import random_expr, compile_expr, UINT32_MAX
+from .enumeration import generate_comprehensive_suite
 from sloppyvm.registry import get_available_versions, get_implementation
 
 
@@ -201,7 +203,7 @@ def generate_mixed_strategy_bytecode(max_instructions: int = DEFAULT_CONFIG.max_
         return generate_expression_bytecode(max_depth=DEFAULT_CONFIG.max_depth, max_value=UINT32_MAX)
 
 
-# Generator registry for dispatch
+# Generator registry for dispatch (enumeration handled separately)
 GENERATORS: dict[str, Callable[[], bytes]] = {
     "random": generate_random_bytes,
     "structured": generate_structure_aware_bytecode,
@@ -346,9 +348,11 @@ def report_bug(test_num: int, bytecode: bytes, expected: ExecutionResult, actual
 
 def print_header(num_tests: int, impl: str, generator: str) -> None:
     """Print fuzzer run header."""
-    print(f"SloppyVM Fuzzer - Running {num_tests} tests")
+    print("=" * 60)
+    print(f"SloppyVM Fuzzer")
     print(f"Testing: {impl}")
     print(f"Generator: {generator}")
+    print(f"Running {num_tests} tests")
     print("=" * 60)
 
 
@@ -379,19 +383,22 @@ def run_single_test(
 
 
 def run_fuzzer(
-    num_tests: int = 1000,
+    num_tests: Optional[int] = None,
     seed: Optional[int] = None,
     impl: str = "v1",
-    generator: str = "random"
+    generator: str = "random",
+    max_expr_depth: int = 2
 ) -> FuzzingStatistics:
     """
     Run the fuzzer for a specified number of tests.
 
     Args:
-        num_tests: Number of random test cases to generate
+        num_tests: Number of test cases to run. For enumeration: None means complete suite.
+                   For other generators: defaults to 1000 if None.
         seed: Random seed for reproducibility
         impl: Which implementation to test (auto-discovered from sloppy_vm_impl_v*.py)
-        generator: Generator type: "random", "structured", "expression", or "mixed"
+        generator: Generator type: "random", "structured", "expression", "mixed", or "enumeration"
+        max_expr_depth: Maximum expression tree depth for enumeration (default: 2)
 
     Returns:
         FuzzingStatistics object with results
@@ -399,27 +406,60 @@ def run_fuzzer(
     if seed is not None:
         random.seed(seed)
 
-    # Select implementation and generator
+    # Select implementation
     impl_func = get_implementation(impl).execute
-    generator_func = GENERATORS.get(generator, generate_random_bytes)
 
     # Initialize statistics
     stats = FuzzingStatistics()
 
+    # Prepare bytecode source based on generator type
+    if generator == "enumeration":
+        # Generate test suite (as generator)
+        suite_generator = generate_comprehensive_suite(max_expr_depth=max_expr_depth)
+
+        if num_tests is None:
+            # Run all tests
+            print(f"Generating complete enumeration suite (max expression depth: {max_expr_depth})...")
+            test_list = list(suite_generator)
+            num_tests = len(test_list)
+            print(f"Generated {num_tests} unique test cases")
+        else:
+            # Take first num_tests (lazy - only generates what we need)
+            print(f"Generating first {num_tests} enumeration tests (max expression depth: {max_expr_depth})...")
+            test_list = list(itertools.islice(suite_generator, num_tests))
+            num_generated = len(test_list)
+            if num_generated < num_tests:
+                print(f"Generated {num_generated} tests (suite exhausted)")
+                num_tests = num_generated
+            else:
+                print(f"Generated {num_generated} tests")
+                print(f"⚠️  WARNING: Running partial enumeration suite")
+                print(f"    For complete coverage, omit -n")
+
+        # Create iterator from list
+        bytecode_source = iter(test_list)
+    else:
+        # Probabilistic generators - use generator function
+        generator_func = GENERATORS.get(generator, generate_random_bytes)
+
+        # For probabilistic generators, default to 1000 tests
+        if num_tests is None:
+            num_tests = 1000
+
+        # Create generator that calls generator_func num_tests times
+        bytecode_source = (generator_func() for _ in range(num_tests))
+
     # Print header
     print_header(num_tests, impl, generator)
 
-    # Run tests
-    for i in range(num_tests):
-        bytecode = generator_func()
+    # Run tests (common loop for both enumeration and probabilistic)
+    for i, bytecode in enumerate(bytecode_source, 1):
         spec_result, impl_result, matches = run_single_test(
             bytecode, execute_with_spec, impl_func
         )
-
         stats.record_test(spec_result, impl_result, matches)
-
         if not matches:
-            report_bug(i + 1, bytecode, spec_result, impl_result)
+            report_bug(i, bytecode, spec_result, impl_result)
 
     # Print summary
     stats.print_summary()
@@ -437,8 +477,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n", "--num-tests",
         type=int,
-        default=1000,
-        help="Number of random test cases to run (default: 1000)"
+        default=None,
+        help="Number of test cases to run. For enumeration: defaults to complete suite; "
+             "specify to run partial suite. For other generators: defaults to 1000."
     )
     parser.add_argument(
         "-s", "--seed",
@@ -457,8 +498,17 @@ if __name__ == "__main__":
         "-g", "--generator",
         type=str,
         default="random",
-        choices=["random", "structured", "expression", "mixed"],
-        help="Generator type: 'random', 'structured', 'expression', or 'mixed' (default: random)"
+        choices=["random", "structured", "expression", "mixed", "enumeration"],
+        help="Generator type: 'random', 'structured', 'expression', 'mixed', or 'enumeration' (default: random)"
+    )
+    parser.add_argument(
+        "--max-expr-depth",
+        type=int,
+        default=2,
+        choices=[0, 1, 2, 3],
+        help="Maximum expression tree depth for enumeration generator (default: 2). "
+             "Suite size grows exponentially: depth 0 (~8 tests), depth 1 (~266 tests), "
+             "depth 2 (~120K tests), depth 3 (~15M tests). Ignored for other generators."
     )
 
     args = parser.parse_args()
@@ -467,5 +517,6 @@ if __name__ == "__main__":
         num_tests=args.num_tests,
         seed=args.seed,
         impl=args.impl,
-        generator=args.generator
+        generator=args.generator,
+        max_expr_depth=args.max_expr_depth
     )

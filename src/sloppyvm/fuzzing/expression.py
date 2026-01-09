@@ -106,7 +106,6 @@ def random_expr(max_depth: int = 3, const_generator: Callable[[], int] = _defaul
     When max_depth reaches 0, only generates Const to ensure termination.
 
     Args:
-        rng: Random number generator (use Random(seed) for reproducibility)
         max_depth: Maximum depth of the expression tree
         const_generator: Callable that generates constant values.
                          Defaults to random 32-bit unsigned integers.

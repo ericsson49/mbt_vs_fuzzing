@@ -157,9 +157,11 @@ def custom_const_generator() -> int:
 The resulting sampler reveals the last bug (in `src/sloppyvm/implementations/v3.py`, BYTE boundary check) instantly:
 ```bash
 $ uv run python -m sloppyvm.fuzzing.fuzzer -i v3 -g expression -n 1000 -s 42
-SloppyVM Fuzzer - Running 1000 tests
+============================================================
+SloppyVM Fuzzer
 Testing: v3
 Generator: expression
+Running 1000 tests
 ============================================================
 
 Test 24: Bug found
@@ -188,10 +190,12 @@ Bug detection rate:     1.6%
 
 After fixing this bug in the v4 implementation (`src/sloppyvm/implementations/v4.py`), the fuzzer finds no further bugs even with 1,000,000 tests.
 ```bash
-uv run python -m sloppyvm.fuzzing.fuzzer -i v4 -g expression -n 1000000 -s 42
-SloppyVM Fuzzer - Running 1000000 tests
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v4 -g expression -n 1000000 -s 42
+============================================================
+SloppyVM Fuzzer
 Testing: v4
 Generator: expression
+Running 1000000 tests
 ============================================================
 
 ============================================================
