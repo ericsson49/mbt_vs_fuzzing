@@ -55,7 +55,9 @@ For `n=4`:
 
 Enumerating all depth-3 expressions is way too much, but if we enumerate all depth=2 cases, this guarantees us a reasonable coverage.
 
-## Making Infinite Models Finite
+---
+
+## Bounding Model Size
 
 ### Bounding Techniques
 
@@ -70,9 +72,11 @@ When building models, we often come up with infinite models or fininte models of
 
 ### Boundary Value Analysis
 
-Bariables or their combinations often span a huge range of values, e.g. the set of 32-bit integers is already huge. We need to select few most interesting values. An important technique to identify such values is [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
+Variables or their combinations often span a huge range of values, e.g. the set of 32-bit integers is already huge. We need to select few most interesting values. An important technique to identify such values is [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
 
-Let's apply it to the SloppyVM instructions:
+### Boundary Values of SloppyVM Instructions
+
+Let's apply it to the SloppyVM:
 
 #### PUSH4
 
@@ -102,8 +106,6 @@ These instructions get their 64-bit arguments from stack. However, in the SLoppy
 #### Summary
 
 Since we can only directly control `PUSH4` it makes sense to union all the boundary values above and use the set of constants: `0`, `1`, `2`, `7`, `8`, `0xFF`, `0xFFFF`, `0xFFFFFFFF`.
-
-
 
 ### Complete Suite Size Breakdown
 
