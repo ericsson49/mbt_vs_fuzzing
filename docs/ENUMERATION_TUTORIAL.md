@@ -53,31 +53,7 @@ For `n=4`:
 
 > **Note**: This formula is provided for understanding suite size growth. The actual implementation generates tests using recursive enumeration rather than computing counts ahead of time.
 
-Enumerating all depth-3 expressions is way too much, but if we enumerate all depth=2 cases, this guarantees us a reaonable coverage.
-
-### Complete Suite Size Breakdown
-
-The comprehensive test suite (`generate_comprehensive_suite` in [enumeration.py](../src/sloppyvm/fuzzing/enumeration.py)) includes more than just expression programs:
-
-**Minimal Configuration** (4 constants: `{0, 1, 7, 8}`):
-- Expression programs (depth 0-2): ~8,116 (from formula above)
-- BYTE boundary tests: 60 (6 values × 10 indices 0-9)
-- Arithmetic overflow tests: 18 (3×3 pairs × 2 operations ADD/MUL)
-- Stack underflow tests: 15 (operations without sufficient stack values)
-- Duplicates removed: ~17
-- **Total: ~8,172 unique tests**
-
-**Default Configuration** (8 boundary constants: `{0, 1, 2, 7, 8, 0xFF, 0xFFFF, 0xFFFFFFFF}`):
-- Expression programs (depth 0-2): 120,008
-- BYTE boundary tests: 60
-- Arithmetic overflow tests: 18
-- Stack underflow tests: 15
-- Duplicates removed: 235
-- **Total: 120,074 unique tests**
-
-The boundary tests ensure comprehensive coverage of edge cases beyond just expression enumeration.
-
----
+Enumerating all depth-3 expressions is way too much, but if we enumerate all depth=2 cases, this guarantees us a reasonable coverage.
 
 ## Making Infinite Models Finite
 
@@ -126,6 +102,31 @@ These instructions get their 64-bit arguments from stack. However, in the SLoppy
 #### Summary
 
 Since we can only directly control `PUSH4` it makes sense to union all the boundary values above and use the set of constants: `0`, `1`, `2`, `7`, `8`, `0xFF`, `0xFFFF`, `0xFFFFFFFF`.
+
+
+
+### Complete Suite Size Breakdown
+
+The comprehensive test suite (`generate_comprehensive_suite` in [enumeration.py](../src/sloppyvm/fuzzing/enumeration.py)) includes more than just expression programs:
+
+**Minimal Configuration** (4 constants: `{0, 1, 7, 8}`):
+- Expression programs (depth 0-2): ~8,116 (from formula above)
+- BYTE boundary tests: 60 (6 values × 10 indices 0-9)
+- Arithmetic overflow tests: 18 (3×3 pairs × 2 operations ADD/MUL)
+- Stack underflow tests: 15 (operations without sufficient stack values)
+- Duplicates removed: ~17
+- **Total: ~8,172 unique tests**
+
+**Default Configuration** (8 boundary constants: `{0, 1, 2, 7, 8, 0xFF, 0xFFFF, 0xFFFFFFFF}`):
+- Expression programs (depth 0-2): 120,008
+- BYTE boundary tests: 60
+- Arithmetic overflow tests: 18
+- Stack underflow tests: 15
+- Duplicates removed: 235
+- **Total: 120,074 unique tests**
+
+The boundary tests ensure comprehensive coverage of edge cases beyond just expression enumeration.
+
 
 ---
 
