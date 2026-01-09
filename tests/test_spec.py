@@ -4,7 +4,7 @@ Test suite for SloppyVM.
 Run with: uv run test_sloppy_vm.py
 """
 
-from sloppy_vm_spec import (
+from sloppyvm.spec import (
     # Instructions
     PUSH4, ADD, MUL, BYTE, Instruction,
     # Serialization

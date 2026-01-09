@@ -1,9 +1,19 @@
+# Generated output
+output/
+generated_tests/
+
 # Python-generated files
 __pycache__/
+*.pyc
 build/
 dist/
 wheels/
 *.egg-info
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv

@@ -11,7 +11,7 @@ Known issues:
 from typing import List
 
 # Import constants from spec to ensure consistency
-from sloppy_vm_spec import UINT64_MAX, OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
+from sloppyvm.spec import UINT64_MAX, OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
 
 
 def execute(bytecode: bytes) -> List[int]:

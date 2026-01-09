@@ -9,7 +9,7 @@ This version fixes all known bugs from v1/v2:
 
 from typing import List, Optional
 
-from sloppy_vm_spec import (
+from sloppyvm.spec import (
     SloppyVMException, InvalidInstruction, StackUnderflow,
     UINT64_MAX, OP_PUSH4, OP_ADD, OP_MUL, OP_BYTE
 )

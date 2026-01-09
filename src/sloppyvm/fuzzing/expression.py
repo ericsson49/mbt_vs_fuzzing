@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import random
-from sloppy_vm_spec import serialize_program, Instruction
+from sloppyvm.spec import serialize_program, Instruction
 from typing import Union, List, Callable
 
 
@@ -68,7 +68,7 @@ def compile_expr_to_instructions(expr: Expr) -> List[Instruction]:
         Mul(Const(2), Add(Const(3), Const(4))) -> [PUSH4(2), PUSH4(3), PUSH4(4), ADD(), MUL()]
         Byte(Const(0x123456789ABCDEF0), Const(1)) -> [PUSH4(...), PUSH4(1), BYTE()]
     """
-    from sloppy_vm_spec import PUSH4, ADD, MUL, BYTE
+    from sloppyvm.spec import PUSH4, ADD, MUL, BYTE
 
     match expr:
         case Const(value=val):

@@ -6,12 +6,12 @@ This tutorial demonstrates using fuzzing to find bugs in the SloppyVM implementa
 
 ## Buggy implementation (v1)
 
-The file [sloppy_vm_impl_v1.py](sloppy_vm_impl_v1.py) contains a deliberately buggy implementation. Let's examine its known bugs:
+The file [src/sloppyvm/implementations/v1.py](../src/sloppyvm/implementations/v1.py) contains a deliberately buggy implementation. Let's examine its known bugs:
 
 ### Bugs
 #### Bug 1: Wrong Endianness for PUSH4
 
-**Location**: `sloppy_vm_impl_v1.py`:[43](sloppy_vm_impl_v1.py#L43)
+**Location**: `src/sloppyvm/implementations/v1.py` (PUSH4 deserialization)
 
 ```python
 # BUG: Using little-endian instead of big-endian
@@ -20,7 +20,7 @@ value = int.from_bytes(bytecode[offset + 1:offset + 5], 'little')
 
 #### Bug 2: No Stack Underflow Checking
 
-**Location**: `sloppy_vm_impl_v1.py`: [49-50](sloppy_vm_impl_v1.py#L49), [57-58](sloppy_vm_impl_v1.py#L57), [66-67](sloppy_vm_impl_v1.py#L66)
+**Location**: `src/sloppyvm/implementations/v1.py` (ADD, MUL, and BYTE operations)
 
 
 ```python
@@ -33,7 +33,7 @@ The implementation will raise `IndexError`. An (implicit) requirement is that it
 
 #### Bug 3: Missing 64-bit Overflow Masking
 
-**Location**: `sloppy_vm_impl_v1.py`:[52](sloppy_vm_impl_v1.py#L52), [60](sloppy_vm_impl_v1.py#L60)
+**Location**: `src/sloppyvm/implementations/v1.py` (ADD and MUL result computation)
 
 ```python
 # BUG: Missing modulo masking for overflow
@@ -44,7 +44,7 @@ stack.append(a * b)  # Should be: (a * b) & UINT64_MAX
 
 #### Bug 4: Incorrect BYTE Instruction
 
-**Location**: `sloppy_vm_impl_v1.py`:[72](sloppy_vm_impl_v1.py#L72)
+**Location**: `src/sloppyvm/implementations/v1.py` (BYTE shift calculation)
 
 ```python
     shift = i * 8  # Should be: (7-i) * 8 for big-endian extraction
@@ -53,7 +53,7 @@ stack.append(a * b)  # Should be: (a * b) & UINT64_MAX
 
 #### Bug 5: Crash on Unknown Opcodes
 
-**Location**: `sloppy_vm_impl_v1.py`:[79](sloppy_vm_impl_v1.py#L79)
+**Location**: `src/sloppyvm/implementations/v1.py` (unknown opcode handler)
 
 ```python
 else:
@@ -81,13 +81,13 @@ This means most test cases are:
 We can run the fuzzer against v1 with 1000 random test cases:
 
 ```bash
-uv run fuzzer.py -i v1 -n 1000 -g random
+uv run python -m sloppyvm.fuzzing.fuzzer -i v1 -n 1000 -g random
 ```
 
 ### Example Results
 
 ```bash
-$ uv run fuzzer.py -i v1 -n 1000 -g random -s 42
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v1 -n 1000 -g random -s 42
 SloppyVM Fuzzer - Running 1000 tests
 Testing: v1
 Generator: random bytes
@@ -137,14 +137,14 @@ Test 148: Bug found
 
 ### Fixing bugs
 
-The bugs are easy to fix: just raise `InvalidInstruction` or `StackUnderflow`, which are a sub-classes of `SloppyVMException`. After implementing the fixes, we have [sloppy_vm_impl_v2.py](sloppy_vm_impl_v2.py).
+The bugs are easy to fix: just raise `InvalidInstruction` or `StackUnderflow`, which are a sub-classes of `SloppyVMException`. After implementing the fixes, we have [src/sloppyvm/implementations/v2.py](../src/sloppyvm/implementations/v2.py).
 
 ### Fuzzing again
 
 Let's fuzz the v2 version:
 
 ```bash
-$ uv run fuzzer.py -i v2 -n 100000 -g random -s 42
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v2 -n 100000 -g random -s 42
 SloppyVM Fuzzer - Running 100000 tests
 Testing: v2
 Generator: random bytes
@@ -188,12 +188,12 @@ def generate_structured_bytecode(max_instructions: int = 10) -> bytes:
     return b''.join(instructions)
 ```
 
-In practice, we may still generate invalid sequences with low probability, which is exactly the [approach](fuzzer.py#L32) used, when `-g structured` is passed to the fuzzer.
+In practice, we may still generate invalid sequences with low probability, which is exactly the approach used in `src/sloppyvm/fuzzing/fuzzer.py` (the `generate_structure_aware_bytecode` function) when `-g structured` is passed to the fuzzer.
 
 ### Example Results
 
 ```bash
-$ uv run fuzzer.py -i v2 -n 1000 -g structured -s 42 
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v2 -n 1000 -g structured -s 42 
 SloppyVM Fuzzer - Running 1000 tests
 Testing: v2
 Generator: structure-aware
@@ -225,8 +225,8 @@ This time about 75% of bytecodes are valid, which helps to reveal **Bug 3** (64-
 
 ### Fixing bugs
 
-After fixing the bugs, we've got [sloppy_vm_impl_v3.py](sloppy_vm_impl_v3.py). In the process, one more bug revealed and fixed:
-**Location**: `sloppy_vm_impl_v2.py`:[72](sloppy_vm_impl_v2.py#L72)
+After fixing the bugs, we've got [src/sloppyvm/implementations/v3.py](../src/sloppyvm/implementations/v3.py). In the process, one more bug revealed and fixed:
+**Location**: `src/sloppyvm/implementations/v2.py` (BYTE stack pop order)
 ```python
 # BUG: wrong stack pop order, should be swapped
 x = stack.pop()
@@ -236,7 +236,7 @@ i = stack.pop()
 ### Structure-aware fuzzing again
 
 ```bash
-$ uv run fuzzer.py -i v3 -n 1000000 -g structured -s 42
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v3 -n 1000000 -g structured -s 42
 SloppyVM Fuzzer - Running 1000000 tests
 Testing: v3
 Generator: structure-aware
@@ -255,7 +255,7 @@ Correct:                   1000000
 No bugs detected!
 ```
 
-Running 1 million tests revealed no bugs. However, there is still a [bug](sloppy_vm_impl_v3.py#L72) present:
+Running 1 million tests revealed no bugs. However, there is still a bug present in `src/sloppyvm/implementations/v3.py` (BYTE boundary check):
 ```python
 # BUG: wrong bound check
 if i >= 7: # should be i >= 8
@@ -267,4 +267,4 @@ else:
     stack.append(result)
 ```
 
-It looks like it's extremely unlikely to generate a bytecode revealing the bug, even with structure-aware fuzzing. We'll address the problem with Model-based testing in the next [tutorial](MBF_TUTORIAL.md).
+It looks like it's extremely unlikely to generate a bytecode revealing the bug, even with structure-aware fuzzing. We'll address the problem with Model-based testing in the next [tutorial](./MBF_TUTORIAL.md).

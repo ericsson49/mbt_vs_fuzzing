@@ -1,7 +1,7 @@
 """Dynamic discovery and registry of SloppyVM implementation modules.
 
-Searches for files matching the pattern 'sloppy_vm_impl_v*.py' in the same
-directory as this script, imports them, and validates they have the required
+Searches for files matching the pattern 'v*.py' in the implementations/
+subdirectory, imports them, and validates they have the required
 execute() function.
 """
 
@@ -13,8 +13,8 @@ from types import ModuleType
 
 
 def extract_version_from_filename(filename: str) -> int | None:
-    """Extract version number from sloppy_vm_impl_v<N>.py filename."""
-    match = re.match(r'sloppy_vm_impl_v(\d+)\.py', filename)
+    """Extract version number from v<N>.py filename."""
+    match = re.match(r'v(\d+)\.py', filename)
     return int(match.group(1)) if match else None
 
 
@@ -27,9 +27,9 @@ def discover_implementations() -> dict[str, tuple[ModuleType, int]]:
     """
     Dynamically discover all SloppyVM implementation modules.
 
-    Searches for files matching the pattern 'sloppy_vm_impl_v*.py' in the
-    same directory as this script, imports them, and validates they have
-    the required execute() function.
+    Searches for files matching the pattern 'v*.py' in the implementations/
+    subdirectory, imports them, and validates they have the required
+    execute() function.
 
     Returns:
         Dictionary mapping version identifiers (e.g., 'v1', 'v2') to tuples
@@ -40,8 +40,12 @@ def discover_implementations() -> dict[str, tuple[ModuleType, int]]:
     """
     implementations: dict[str, tuple[ModuleType, int]] = {}
     script_dir = pathlib.Path(__file__).parent.resolve()
+    impl_dir = script_dir / 'implementations'
 
-    for file_path in script_dir.glob('sloppy_vm_impl_*.py'):
+    # Add implementations directory to module search path
+    sys.path.insert(0, str(impl_dir))
+
+    for file_path in impl_dir.glob('v*.py'):
         version_num = extract_version_from_filename(file_path.name)
         if version_num is None:
             continue
