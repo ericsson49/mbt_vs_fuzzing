@@ -43,10 +43,25 @@ This is small enough to enumerate exhaustively.
 
 ### Expression Tree Structure
 
-The expression model defines an AST in `src/sloppyvm/fuzzing/expression.py`:
+The expression model defines an AST in [src/sloppyvm/fuzzing/expression.py](../src/sloppyvm/fuzzing/expression.py):
 
 ```python
-Expr = Const(UInt32) | Add(Expr, Expr) | Mul(Expr, Expr) | Byte(Expr, Expr)
+class Const:
+    value: int
+
+class Add:
+    left: Expr
+    right: Expr
+
+class Mul:
+    left: Expr
+    right: Expr
+
+class Byte:
+    value: Expr
+    index: Expr
+
+Expr = Union[Const, Add, Mul, Byte]
 ```
 
 The set of all expressions is infinite, but we can bound it by limiting depth.
@@ -70,7 +85,7 @@ PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select inte
 
 ### Systematic Enumeration
 
-The enumeration module (`src/sloppyvm/fuzzing/enumeration.py`) generates all expressions up to a given depth:
+The [enumeration](../src/sloppyvm/fuzzing/enumeration.py) module generates all expressions up to a given depth:
 
 ```python
 def enumerate_expressions(depth: int, constants: List[int]) -> Iterator[Expr]:
@@ -92,7 +107,7 @@ This recursively generates all combinations without repetition.
 
 ### Complete Test Suite Composition
 
-The `generate_comprehensive_suite` function combines multiple test categories:
+The `generate_comprehensive_suite` function inn [fuenumerationzzer.py](../src/sloppyvm/fuzzing/enumeration.py) combines multiple test categories:
 
 1. **Expression programs** (depth 0-2):
    - 4 constants: ~8,100 unique programs
@@ -191,54 +206,6 @@ Bug detection rate:     3.0%
 ```
 
 All 8 failing tests involve `BYTE(x, 7)` - exactly the boundary condition from the v3 bug.
-
----
-
-## Comparison: Enumeration vs Fuzzing
-
-Finding the v3 BYTE boundary bug:
-
-| Approach | Tests | Bug Found | Coverage | Time | Deterministic |
-|----------|-------|-----------|----------|------|---------------|
-| Random fuzzing | 1,000,000 | ❌ No | ~0.001% | 45s | ❌ No |
-| Structured fuzzing | 1,000,000 | ❌ No | ~15% | 52s | ❌ No |
-| Expression fuzzing | 1,000,000 | ✓ Sometimes* | ~15% | 54s | ❌ No |
-| **Enumeration (depth≤1)** | **266** | ✅ Always | **100%** of model | **0.4s** | ✅ Yes |
-| **Enumeration (depth≤2, 4c)** | **8,193** | ✅ Always | **100%** of model | **1.2s** | ✅ Yes |
-| **Enumeration (depth≤2, 8c)** | **120,074** | ✅ Always | **100%** of model | **18s** | ✅ Yes |
-
-\* Depends on seed and constant distribution
-c = number of boundary constants
-
-**Why enumeration wins:**
-1. **Guaranteed coverage** within bounded model
-2. **Efficiency**: 120-3750x fewer tests than 1M fuzzing
-3. **Speed**: No redundant tests
-4. **Determinism**: Reproducible results
-5. **Precision**: Every test is unique and meaningful
-
-The bounded model (expressions depth ≤ 1-2 with boundary constants) is sufficient to reveal the bug.
-
----
-
-## State Space Explosion
-
-Enumeration doesn't scale to unbounded models. Expression count grows exponentially:
-
-| Depth | Constants=4 | Constants=8 |
-|-------|-------------|-------------|
-| 0 | 4 | 8 |
-| 1 | 52 | 200 |
-| 2 | 8,116 | 120,008 |
-| 3 | ~200,000 | ~14,400,000 |
-| 4 | ~120,000,000 | ~622,000,000,000 |
-
-**Mitigation strategies:**
-- **Stratification**: Enumerate small cases, fuzz large cases
-- **Equivalence partitioning**: Test representative values from each partition
-- **Symbolic execution**: Analyze paths symbolically
-- **Coverage-guided fuzzing**: Use feedback to guide exploration
-- **Hybrid approaches**: Combine enumeration with sampling
 
 ---
 
