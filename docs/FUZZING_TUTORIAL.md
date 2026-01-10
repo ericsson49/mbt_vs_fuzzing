@@ -88,9 +88,11 @@ uv run python -m sloppyvm.fuzzing.fuzzer -i v1 -n 1000 -g random
 
 ```bash
 $ uv run python -m sloppyvm.fuzzing.fuzzer -i v1 -n 1000 -g random -s 42
-SloppyVM Fuzzer - Running 1000 tests
+============================================================
+SloppyVM Fuzzer
 Testing: v1
-Generator: random bytes
+Generator: random
+Running 1000 tests
 ============================================================
 
 Test 1: Bug found
@@ -145,9 +147,11 @@ Let's fuzz the v2 version:
 
 ```bash
 $ uv run python -m sloppyvm.fuzzing.fuzzer -i v2 -n 100000 -g random -s 42
-SloppyVM Fuzzer - Running 100000 tests
+============================================================
+SloppyVM Fuzzer
 Testing: v2
-Generator: random bytes
+Generator: random
+Running 100000 tests
 ============================================================
 
 ============================================================
@@ -193,10 +197,12 @@ In practice, we may still generate invalid sequences with low probability, which
 ### Example Results
 
 ```bash
-$ uv run python -m sloppyvm.fuzzing.fuzzer -i v2 -n 1000 -g structured -s 42 
-SloppyVM Fuzzer - Running 1000 tests
+$ uv run python -m sloppyvm.fuzzing.fuzzer -i v2 -n 1000 -g structured -s 42
+============================================================
+SloppyVM Fuzzer
 Testing: v2
-Generator: structure-aware
+Generator: structured
+Running 1000 tests
 ============================================================
 
 Test 26: Bug found
@@ -237,9 +243,11 @@ i = stack.pop()
 
 ```bash
 $ uv run python -m sloppyvm.fuzzing.fuzzer -i v3 -n 1000000 -g structured -s 42
-SloppyVM Fuzzer - Running 1000000 tests
+============================================================
+SloppyVM Fuzzer
 Testing: v3
-Generator: structure-aware
+Generator: structured
+Running 1000000 tests
 ============================================================
 
 ============================================================
