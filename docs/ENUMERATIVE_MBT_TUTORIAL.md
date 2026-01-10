@@ -6,7 +6,7 @@ This tutorial explores deterministic, exhaustive test generation through systema
 
 ## Limitations of Randomized Testing
 
-Randomized testing lacks deterministic coverage guarantees. In the [Model-Based Fuzzing tutorial](./MBF_TUTORIAL.md), expression-based fuzzing with tuned constant generation found the BYTE boundary bug in v3. However, probabilistic sampling doesn't guarantee the bug will be found in every run:
+Randomized testing can be very efficient, but it lacks deterministic coverage guarantees. In the [Model-Based Fuzzing tutorial](./MBF_TUTORIAL.md), expression-based fuzzing with tuned constant generation found the BYTE boundary bug in v3. However, probabilistic sampling doesn't guarantee the bug will be found in every run:
 
 ```bash
 # Seed 1: no bugs found
@@ -26,7 +26,9 @@ How do we guarantee coverage of important scenarios?
 
 ## Finite Models
 
-Finite models provide deterministic coverage. Each model solution corresponds to a test requirement:
+As a solution, we can describe a set of **tests requirements** with a finite model. 
+
+Finite models can provide deterministic coverage. We can associate each model solution with a **test requirement**:
 - **Coverage criterion**: Model completeness defines test completeness
 - **Enumeration**: Generate tests by enumerating all model solutions
 
@@ -64,11 +66,11 @@ class Byte:
 Expr = Union[Const, Add, Mul, Byte]
 ```
 
-The set of all expressions is infinite, but we can bound it by limiting depth.
+The set of all expressions is infinite, but it is easy to bound by limiting expression depth.
 
 ### Bounding the Constant Space
 
-PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values using **boundary value analysis**.
+PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values using [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
 
 **BYTE instruction boundaries:**
 - `i >= 8` check in spec suggests two ranges: `[0-7]` and `[8+]`
@@ -211,13 +213,5 @@ All 8 failing tests involve `BYTE(x, 7)` - exactly the boundary condition from t
 
 ## Conclusion
 
-Enumerative model-based testing provides deterministic, exhaustive coverage within bounded models. The key is selecting appropriate bounds that balance coverage and feasibility.
-
-For SloppyVM:
-- Depth ≤ 2 with 4-8 boundary constants creates 8K-120K tests
-- This bounded model is sufficient to reveal the BYTE boundary bug
-- 100-3000x more efficient than probabilistic fuzzing
-- Guaranteed to find bugs within the model scope
-
-When models grow too large, combine enumeration (for small, critical cases) with fuzzing (for larger state spaces).
+Enumerative model-based testing provides deterministic, exhaustive coverage within bounded models. In practice, it makes sense to combine deterministic and randomized test generation: we can have both deterministic coverage guarantee and exploration of larger parts of the SUT state space. One straightforward approach is to use deterministically generated test suite as a seed corupus for mutation-based fuzzing.
 
