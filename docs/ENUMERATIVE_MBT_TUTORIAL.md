@@ -6,7 +6,7 @@ This tutorial explores deterministic, exhaustive test generation through systema
 
 ## Limitations of Randomized Testing
 
-Randomized testing can be very efficient, but it lacks deterministic coverage guarantees. In the [Model-Based Fuzzing tutorial](./MBF_TUTORIAL.md), expression-based fuzzing with tuned constant generation found the BYTE boundary bug in v3. However, probabilistic sampling doesn't guarantee the bug will be found in every run:
+Randomized testing can be very efficient, but it lacks deterministic coverage guarantees. In the [Model-Based Fuzzing tutorial](./MBF_TUTORIAL.md), expression-based fuzzing with tuned constant generation found the BYTE boundary bug in v3. However, we are not guaranteed to reveal the bug in every run:
 
 ```bash
 # Seed 1: no bugs found
@@ -20,13 +20,13 @@ $ uv run python -m sloppyvm.fuzzing.fuzzer -i v3 -g expression -n 100 -s 2
 Test 88: Bug found
 ```
 
-How do we guarantee coverage of important scenarios?
+How can we guarantee coverage of important scenarios?
 
 ---
 
 ## Finite Models
 
-As a solution, we can describe a set of **tests requirements** with a finite model. 
+As a solution, we can describe a set of **test requirements** with a finite model. 
 
 Finite models can provide deterministic coverage. We can associate each model solution with a **test requirement**:
 - **Coverage criterion**: Model completeness defines test completeness
@@ -109,7 +109,7 @@ This recursively generates all combinations without repetition.
 
 ### Complete Test Suite Composition
 
-The `generate_comprehensive_suite` function inn [fuenumerationzzer.py](../src/sloppyvm/fuzzing/enumeration.py) combines multiple test categories:
+The `generate_comprehensive_suite` function in [enumeration.py](../src/sloppyvm/fuzzing/enumeration.py) combines multiple test categories:
 
 1. **Expression programs** (depth 0-2):
    - 4 constants: ~8,100 unique programs
@@ -213,5 +213,5 @@ All 8 failing tests involve `BYTE(x, 7)` - exactly the boundary condition from t
 
 ## Conclusion
 
-Enumerative model-based testing provides deterministic, exhaustive coverage within bounded models. In practice, it makes sense to combine deterministic and randomized test generation: we can have both deterministic coverage guarantee and exploration of larger parts of the SUT state space. One straightforward approach is to use deterministically generated test suite as a seed corupus for mutation-based fuzzing.
+Enumerative model-based testing provides deterministic, exhaustive coverage within bounded models. In practice, it makes sense to combine deterministic and randomized test generation: we can have both deterministic coverage guarantee and exploration of larger parts of the SUT state space. One straightforward approach is to use deterministically generated test suite as a seed corpus for mutation-based fuzzing.
 
