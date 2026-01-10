@@ -26,13 +26,9 @@ How can we guarantee coverage of important scenarios?
 
 ## Finite Models
 
-As a solution, we can describe a set of **test requirements** with a finite model. 
+To solve the problem, we can describe a set of **test requirements** with a finite model. If the model is of reasonable size, we can enumerate all its solutions. Then we can instantiate them as tests. Thus, finite models can provide us with both coverage criterion and a way to achieve the coverage.
 
-Finite models can provide deterministic coverage. We can associate each model solution with a **test requirement**:
-- **Coverage criterion**: Model completeness defines test completeness
-- **Enumeration**: Generate tests by enumerating all model solutions
-
-For SloppyVM expressions with depth ≤ 2 and 4 constants `{0, 1, 7, 8}`:
+For example, for SloppyVM expressions with depth ≤ 2 and 4 constants `{0, 1, 7, 8}`:
 - Depth 0: 4 expressions
 - Depth 1: 52 expressions
 - Depth 2: 8,116 expressions
