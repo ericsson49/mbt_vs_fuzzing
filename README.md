@@ -9,8 +9,8 @@ SloppyVM is intentionally simple: featuring just four instructions (PUSH4, ADD, 
 - [(generation-based) Fuzzing Tutorial](docs/FUZZING_TUTORIAL.md) - Random and structure-aware fuzzing techniques
 - [Model-Based Fuzzing Tutorial](docs/MBF_TUTORIAL.md) - Expression-based probabilistic generation
 - [Enumerative Model-Based Testing Tutorial](./docs/ENUMERATIVE_MBT_TUTORIAL.md) - Deterministic exhaustive test generation
-- Mutation-based fuzzing (todo)
-- MBT+mutative fuzzing (todo)
+- Mutation-based fuzzing ???
+- MBT+mutative fuzzing ???
 
 
 ## Installation
