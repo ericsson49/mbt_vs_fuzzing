@@ -66,7 +66,7 @@ The set of all expressions is infinite, but it is easy to bound by limiting expr
 
 ### Bounding the Constant Space
 
-PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values using [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
+PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values somehow. And important techniquer here is [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
 
 **BYTE instruction boundaries:**
 - `i >= 8` check in spec suggests two ranges: `[0-7]` and `[8+]`
@@ -209,5 +209,5 @@ All 8 failing tests involve `BYTE(x, 7)` - exactly the boundary condition from t
 
 ## Conclusion
 
-Enumerative model-based testing provides deterministic, exhaustive coverage within bounded models. In practice, it makes sense to combine deterministic and randomized test generation: we can have both deterministic coverage guarantee and exploration of larger parts of the SUT state space. One straightforward approach is to use deterministically generated test suite as a seed corpus for mutation-based fuzzing.
+Enumerative model-based testing provides deterministic, exhaustive coverage of bounded models. In practice, it makes sense to combine deterministic and randomized test generation: we can have both deterministic coverage guarantee and exploration of larger parts of the state space. One straightforward approach is to use deterministically generated test suite as a seed corpus for mutation-based fuzzing.
 
