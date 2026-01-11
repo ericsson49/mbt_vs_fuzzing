@@ -66,7 +66,7 @@ The set of all expressions is infinite, but it is easy to bound by limiting expr
 
 ### Bounding the Constant Space
 
-PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values somehow. And important techniquer here is [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
+PUSH4 accepts any 32-bit value (4 billion possibilities). We need to select interesting values somehow. And important technique here is [boundary value analysis](https://en.wikipedia.org/wiki/Boundary-value_analysis).
 
 **BYTE instruction boundaries:**
 - `i >= 8` check in spec suggests two ranges: `[0-7]` and `[8+]`
